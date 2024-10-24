@@ -4,7 +4,7 @@ use std::f32::consts::FRAC_1_SQRT_2;
 use crate::constants::{LEVELS, SCREEN_HEIGHT, SCREEN_WIDTH};
 
 pub struct Player {
-    collider: Rect,
+    pub collider: Rect,
     speed: f32,
     level: u8,
     texture: Option<Texture2D>,

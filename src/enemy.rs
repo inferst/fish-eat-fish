@@ -2,6 +2,7 @@ use macroquad::{prelude::*, rand};
 
 use crate::constants::{LEVELS, SCREEN_HEIGHT, SCREEN_WIDTH};
 
+#[derive(Debug)]
 pub struct Enemy {
     pub collider: Rect,
     pub speed: f32,
@@ -29,19 +30,19 @@ impl Enemy {
 }
 
 #[derive(Default)]
-pub struct Updater {
+pub struct Manager {
     enemies: Vec<Enemy>,
     spawn_timer: f32,
-    spawn_timer_max: f32,
 }
 
-impl Updater {
+impl Manager {
     pub fn update(&mut self) {
-        if self.spawn_timer > self.spawn_timer_max {
+        if self.spawn_timer <= 0.0 {
             let enemy = Enemy::create();
+            debug!("Enemy: {:?}", enemy);
+
             self.enemies.push(enemy);
-            self.spawn_timer = 0.0;
-            self.spawn_timer_max = rand::gen_range(0.0, 2.0);
+            self.spawn_timer = rand::gen_range(0.0, 2.0);
         }
 
         for enemy in &mut self.enemies {
@@ -67,6 +68,12 @@ impl Updater {
                 && enemy.collider.x <= SCREEN_WIDTH + enemy.collider.w
         });
 
-        self.spawn_timer += get_frame_time();
+        self.spawn_timer -= get_frame_time();
+    }
+
+    pub fn collide(&self, collider: Rect) -> bool {
+        self.enemies
+            .iter()
+            .any(|enemy| enemy.collider.overlaps(&collider))
     }
 }

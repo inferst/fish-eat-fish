@@ -1,10 +1,12 @@
 use constants::{SCREEN_HEIGHT, SCREEN_WIDTH};
-use enemy::Updater;
+use enemy::Manager;
+use game::Game;
 use macroquad::prelude::*;
 use player::Player;
 
 mod constants;
 mod enemy;
+mod game;
 mod player;
 
 fn window_conf() -> Conf {
@@ -33,11 +35,11 @@ async fn main() {
     let mut player = Player::create();
     player.load_texure().await;
 
-    let mut enemy_updater = Updater::default();
+    let mut enemy_updater = Manager::default();
+
+    let mut game = Game::new();
 
     loop {
-        clear_background(RED);
-
         draw_texture_ex(
             &background,
             0.0,
@@ -52,8 +54,16 @@ async fn main() {
             },
         );
 
-        player.update();
         enemy_updater.update();
+
+        if game.is_game_over {
+            next_frame().await;
+            continue;
+        }
+
+        player.update();
+
+        game.check_for_collisions(&player, &enemy_updater);
 
         next_frame().await;
     }
