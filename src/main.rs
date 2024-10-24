@@ -1,9 +1,11 @@
+use background::Background;
 use constants::{SCREEN_HEIGHT, SCREEN_WIDTH};
 use enemy::Manager;
 use game::Game;
 use macroquad::prelude::*;
 use player::Player;
 
+mod background;
 mod constants;
 mod enemy;
 mod game;
@@ -30,40 +32,31 @@ fn setup_debug() {
 async fn main() {
     setup_debug();
 
-    let background = load_texture("assets/background.png").await.unwrap();
+    set_default_filter_mode(FilterMode::Nearest);
+
+    let mut background = Background::new();
+    background.load_textures().await;
 
     let mut player = Player::create();
     player.load_texure().await;
 
-    let mut enemy_updater = Manager::default();
+    let mut enemy_manager = Manager::default();
 
     let mut game = Game::new();
 
     loop {
-        draw_texture_ex(
-            &background,
-            0.0,
-            0.0,
-            Color::from_hex(0x00ff_ffff),
-            DrawTextureParams {
-                dest_size: Some(Vec2 {
-                    x: SCREEN_WIDTH,
-                    y: SCREEN_HEIGHT,
-                }),
-                ..Default::default()
-            },
-        );
+        background.draw();
 
-        enemy_updater.update();
+        enemy_manager.draw();
 
         if game.is_game_over {
             next_frame().await;
             continue;
         }
 
-        player.update();
+        player.draw();
 
-        game.check_for_collisions(&player, &enemy_updater);
+        game.check_for_collisions(&player, &enemy_manager);
 
         next_frame().await;
     }

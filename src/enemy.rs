@@ -18,7 +18,7 @@ impl Enemy {
         let level = rand::gen_range(0, 4) as u8;
         let size = LEVELS[level as usize];
         let x = if direction { -size.x } else { SCREEN_WIDTH };
-        let y = rand::gen_range(-size.x, SCREEN_HEIGHT);
+        let y = rand::gen_range(-size.y / 2.0, SCREEN_HEIGHT - size.y / 2.0);
 
         Enemy {
             collider: Rect::new(x, y, size.x, size.y),
@@ -36,7 +36,7 @@ pub struct Manager {
 }
 
 impl Manager {
-    pub fn update(&mut self) {
+    pub fn draw(&mut self) {
         if self.spawn_timer <= 0.0 {
             let enemy = Enemy::create();
             debug!("Enemy: {:?}", enemy);

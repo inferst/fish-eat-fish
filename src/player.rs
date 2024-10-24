@@ -12,10 +12,16 @@ pub struct Player {
 
 impl Player {
     pub fn create() -> Self {
-        let player_level = LEVELS[0];
+        let size = LEVELS[0];
+        let collider = Rect::new(
+            SCREEN_WIDTH / 2.0 - size.x / 2.0,
+            SCREEN_HEIGHT / 2.0 - size.y / 2.0,
+            size.x,
+            size.y,
+        );
 
         Player {
-            collider: Rect::new(10.0, 10.0, player_level.x, player_level.y),
+            collider,
             level: 1,
             speed: 300.0,
             texture: None,
@@ -26,7 +32,7 @@ impl Player {
         self.texture = Some(load_texture("assets/player.png").await.unwrap());
     }
 
-    pub fn update(&mut self) {
+    pub fn draw(&mut self) {
         let mut velocity = Vec2::default();
 
         if is_key_down(KeyCode::Up) || is_key_down(KeyCode::W) {
