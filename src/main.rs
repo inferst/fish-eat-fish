@@ -5,6 +5,7 @@ use game::Game;
 use macroquad::prelude::*;
 use player::Player;
 
+mod actor;
 mod background;
 mod constants;
 mod enemy;
@@ -37,26 +38,40 @@ async fn main() {
     let mut background = Background::new();
     background.load_textures().await;
 
-    let mut player = Player::create();
+    let mut player = Player::new();
     player.load_texure().await;
+    player.reset();
 
     let mut enemy_manager = Manager::default();
+    enemy_manager.load_textures().await;
 
     let mut game = Game::new();
 
     loop {
         background.draw();
 
+        enemy_manager.spawn();
         enemy_manager.draw();
 
-        if game.is_game_over {
+        draw_text(player.level.to_string().as_str(), 10.0, 20.0, 40.0, WHITE);
+        draw_text(player.weight.to_string().as_str(), 10.0, 60.0, 40.0, WHITE);
+
+        if is_key_pressed(KeyCode::R) {
+            player.reset();
+            enemy_manager.restart();
+            game.restart();
+            next_frame().await;
+            continue;
+        }
+
+        if game.game_over {
             next_frame().await;
             continue;
         }
 
         player.draw();
 
-        game.check_for_collisions(&player, &enemy_manager);
+        game.check_for_collisions(&mut player, &mut enemy_manager);
 
         next_frame().await;
     }
