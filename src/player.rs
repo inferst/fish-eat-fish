@@ -3,10 +3,12 @@ use macroquad::prelude::*;
 use std::f32::consts::FRAC_1_SQRT_2;
 
 use crate::{
-    actor::ActorSprite,
-    constants::{ORIGINAL_SCREEN_HEIGHT, ORIGINAL_SCREEN_WIDTH, SCREEN_SCALE},
+    assets::{self, Texture},
+    constants::{ORIGINAL_SCREEN_HEIGHT, ORIGINAL_SCREEN_WIDTH},
     enemy::Enemy,
-    game::{FISH_SPRITES_OPTIONS, SCORE},
+    game::SCORE,
+    sprite::{Options, Sprite},
+    window::screen_scale,
 };
 
 pub struct Player {
@@ -15,33 +17,51 @@ pub struct Player {
     direction: bool,
     pub level: u8,
     pub weight: u32,
-    texture: Option<Texture2D>,
-    sprite: Option<ActorSprite>,
+    sprite: Sprite,
 }
 
 impl Player {
-    pub fn new() -> Self {
-        Player {
+    pub fn new(options: &Options) -> Self {
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        let sprite = AnimatedSprite::new(
+            options.size.x as u32,
+            options.size.y as u32,
+            &[
+                Animation {
+                    name: "idle".to_string(),
+                    row: 0,
+                    frames: u32::from(options.frames),
+                    fps: 1,
+                },
+                Animation {
+                    name: "swim".to_string(),
+                    row: 0,
+                    frames: u32::from(options.frames),
+                    fps: 3,
+                },
+            ],
+            true,
+        );
+
+        Self {
             collider: Rect::default(),
             level: 0,
             weight: 0,
             speed: 0.0,
             direction: true,
-            texture: None,
-            sprite: None,
+            sprite: Sprite::new(sprite, *options),
         }
     }
 
     pub fn reset(&mut self) {
-        let size = FISH_SPRITES_OPTIONS[0].size;
         self.speed = 100.0;
         self.level = 0;
         self.weight = 0;
         self.collider = Rect::new(
-            ORIGINAL_SCREEN_WIDTH / 2.0 - size.x / 2.0,
-            ORIGINAL_SCREEN_HEIGHT / 2.0 - size.y / 2.0,
-            size.x,
-            size.y,
+            ORIGINAL_SCREEN_WIDTH / 2.0 - self.sprite.options.size.x / 2.0,
+            ORIGINAL_SCREEN_HEIGHT / 2.0 - self.sprite.options.size.y / 2.0,
+            self.sprite.options.size.x,
+            self.sprite.options.size.y,
         );
     }
 
@@ -58,35 +78,8 @@ impl Player {
         }
     }
 
-    pub async fn load_texure(&mut self) {
-        self.texture = Some(load_texture("assets/fish-dart.png").await.unwrap());
-        let options = FISH_SPRITES_OPTIONS[0];
-
-        let sprite = AnimatedSprite::new(
-            options.size.x as u32,
-            options.size.y as u32,
-            &[
-                Animation {
-                    name: "idle".to_string(),
-                    row: 0,
-                    frames: options.frames as u32,
-                    fps: 1,
-                },
-                Animation {
-                    name: "swim".to_string(),
-                    row: 0,
-                    frames: options.frames as u32,
-                    fps: (100.0 / 30.0) as u32,
-                },
-            ],
-            true,
-        );
-
-        self.sprite = Some(ActorSprite::new(sprite, options));
-    }
-
-    pub fn draw(&mut self) {
-        let options = self.sprite.as_ref().unwrap().options;
+    pub fn draw(&mut self, assets: &assets::Manager) {
+        let options = self.sprite.options;
 
         self.collider.x -= (options.collider.x - self.collider.w) / 2.0;
         self.collider.y -= (options.collider.y - self.collider.h) / 2.0;
@@ -132,8 +125,10 @@ impl Player {
 
         self.collider.move_to(player_position);
 
-        let texture = self.texture.as_ref().unwrap();
-        let sprite = self.sprite.as_mut().unwrap();
+        let factor = self.factor();
+
+        let texture = assets.get_texture(&Texture::Vobla);
+        let sprite = &mut self.sprite;
 
         if velocity.x != 0.0 || velocity.y != 0.0 {
             sprite.sprite.set_animation(1);
@@ -142,13 +137,13 @@ impl Player {
         }
 
         let mut dest_size = sprite.sprite.frame().dest_size;
-        dest_size.x *= SCREEN_SCALE;
-        dest_size.y *= SCREEN_SCALE;
+        dest_size.x *= screen_scale() * options.scale;
+        dest_size.y *= screen_scale() * options.scale;
 
         draw_texture_ex(
             texture,
-            (self.collider.x - sprite.options.offset.x) * SCREEN_SCALE,
-            (self.collider.y - sprite.options.offset.y) * SCREEN_SCALE,
+            (self.collider.x - sprite.options.offset.x) * screen_scale(),
+            (self.collider.y - sprite.options.offset.y) * screen_scale(),
             RED,
             DrawTextureParams {
                 source: Some(sprite.sprite.frame().source_rect),
@@ -159,5 +154,17 @@ impl Player {
         );
 
         sprite.sprite.update();
+    }
+
+    pub fn factor(&self) -> f32 {
+        //0.001 * f32::from(self.level + 1)
+        //0.2
+        1.0
+    }
+
+    pub fn get_collider(&self) -> Rect {
+        let mut collider = self.collider;
+        collider.scale(self.factor(), self.factor());
+        collider
     }
 }

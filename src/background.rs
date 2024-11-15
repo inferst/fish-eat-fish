@@ -1,6 +1,6 @@
 use macroquad::prelude::*;
 
-use crate::constants::{SCREEN_HEIGHT, SCREEN_SCALE, SCREEN_WIDTH};
+use crate::window::{game_screen_height, game_screen_width, screen_scale};
 
 pub struct Background {
     far_texture: Option<Texture2D>,
@@ -31,13 +31,13 @@ impl Background {
     }
 
     fn draw_repeated_texture(texture: &Texture2D, offset: Vec2) {
-        let width = texture.width() * SCREEN_SCALE;
-        let height = texture.height() * SCREEN_SCALE;
+        let width = texture.width() * screen_scale();
+        let height = texture.height() * screen_scale();
 
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-        let columns = (SCREEN_WIDTH / width).ceil() as u32;
+        let columns = (game_screen_width() / width).ceil() as u32;
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
-        let rows = (SCREEN_HEIGHT / height).ceil() as u32;
+        let rows = (game_screen_height() / height).ceil() as u32;
 
         for column in 0..columns {
             for row in 0..rows {
@@ -49,8 +49,8 @@ impl Background {
 
                 draw_texture_ex(
                     texture,
-                    x + offset.x * SCREEN_SCALE,
-                    y + offset.y * SCREEN_SCALE,
+                    x + offset.x.round() * screen_scale(),
+                    y + offset.y.round() * screen_scale(),
                     WHITE,
                     DrawTextureParams {
                         dest_size: Some(Vec2 {

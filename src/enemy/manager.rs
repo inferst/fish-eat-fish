@@ -1,47 +1,91 @@
 use macroquad::prelude::*;
 
-use crate::constants::ORIGINAL_SCREEN_WIDTH;
+use crate::{
+    assets::{self, Texture},
+    constants::ORIGINAL_SCREEN_WIDTH,
+    player::Player,
+};
 
-use super::enemy::Enemy;
+use super::Enemy;
+
+const MAX_ENEMIES: usize = 0;
+
+struct EnemyOptions {
+    texture: Texture,
+    level: u8,
+    weight: u32,
+}
+
+const ENEMIES: [EnemyOptions; 6] = [
+    EnemyOptions {
+        texture: Texture::Fish3,
+        level: 0,
+        weight: 5,
+    },
+    EnemyOptions {
+        texture: Texture::Fish4,
+        level: 0,
+        weight: 5,
+    },
+    EnemyOptions {
+        texture: Texture::FishDart,
+        level: 1,
+        weight: 10,
+    },
+    EnemyOptions {
+        texture: Texture::Fish,
+        level: 2,
+        weight: 30,
+    },
+    EnemyOptions {
+        texture: Texture::Fish1,
+        level: 3,
+        weight: 50,
+    },
+    EnemyOptions {
+        texture: Texture::FishBig,
+        level: 4,
+        weight: 80,
+    },
+];
 
 #[derive(Default)]
 pub struct Manager {
     pub enemies: Vec<Enemy>,
     spawn_timer: f32,
-    textures: Vec<Texture2D>,
 }
 
-const MAX_ENEMIES: usize = 10;
-
 impl Manager {
-    pub async fn load_textures(&mut self) {
-        let texture = load_texture("assets/fish-dart.png").await.unwrap();
-        self.textures.push(texture);
-
-        let texture = load_texture("assets/fish.png").await.unwrap();
-        self.textures.push(texture);
-
-        let texture = load_texture("assets/fish-big.png").await.unwrap();
-        self.textures.push(texture);
-    }
-
     pub fn restart(&mut self) {
         self.enemies.clear();
     }
 
-    pub fn spawn(&mut self) {
+    pub fn spawn(&mut self, assets: &assets::Manager, player: &Player) {
         if self.spawn_timer <= 0.0 && self.enemies.len() < MAX_ENEMIES {
-            let level = rand::gen_range(0, 3);
-            let texture = &self.textures[level];
-            let enemy = Enemy::new(texture.clone(), level);
-            debug!("Enemy: {:?}", enemy);
+            let length = u8::try_from(ENEMIES.len()).unwrap();
+            let max_level = (player.level + 3).min(length);
+            let level = rand::gen_range(0, max_level);
+            let enemies: Vec<_> = ENEMIES
+                .iter()
+                .filter(|enemy| enemy.level == level)
+                .collect();
+            let enemy = enemies[rand::gen_range(0, enemies.len())];
+            let options = assets.get_sprite(&enemy.texture);
+            let enemy = Enemy::new(
+                enemy.texture.clone(),
+                *options,
+                level as usize,
+                enemy.weight,
+            );
 
             self.enemies.push(enemy);
-            self.spawn_timer = rand::gen_range(0.0, 5.0);
+            self.spawn_timer = rand::gen_range(0.0, 3.0);
         }
     }
 
-    pub fn draw(&mut self) {
+    pub fn draw(&mut self, assets: &assets::Manager, player: &Player) {
+        self.spawn(assets, player);
+
         for enemy in &mut self.enemies {
             let speed = if enemy.direction {
                 enemy.speed
@@ -52,7 +96,7 @@ impl Manager {
             let x = speed * get_frame_time();
 
             enemy.collider.x += x;
-            enemy.draw();
+            enemy.draw(assets);
         }
 
         self.enemies.retain(|enemy| {
